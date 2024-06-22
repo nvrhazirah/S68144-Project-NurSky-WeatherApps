@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NurSky App</title>
+    <link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css" />
+    <link rel="stylesheet" href="css/index.css">
+</head>
+
+<body>
+    <!-- Swiper Container -->
+    <div class="swiper-container">
+        <div class="swiper-wrapper">
+            <!-- Welcome Page -->
+            <div class="swiper-slide welcome-page">
+                <div class="header">
+                    <img src="img/nursky-logo.png" alt="Logo" width="100" height="100">
+                    <h2>Welcome to NurSky</h2>
+                    <button class="darkmode-toggle">Dark Mode</button>
+                </div>
+                <div class="content">
+                    <p>Explore the weather in your area</p>
+                    <button class="get-started-btn">Get Started</button>
+                </div>
+            </div>
+
+            <!-- Weather Overview Page -->
+            <div class="swiper-slide weather-overview-page">
+                <div class="header">
+                    <div class="user-info">
+                        <input type="text" class="username-input" placeholder="Set name to be displayed">
+                        <button class="set-username">Set</button>
+                    </div>
+                    <div class="weather-place">
+                        <input type="text" class="city-input" placeholder="Enter City Name">
+                        <button class="search-btn"><img src="img/search.png" alt="search icon"></button>
+                    </div>
+                </div>
+                <div class="weather">
+                    <img src="img/rain.png" class="weather-icon">
+                    <h1 class="temp">22°c</h1>
+                    <h2 class="city">Melaka</h2>
+                    <div class="details">
+                        <div class="col">
+                            <img src="img/humidity.png" alt="Humidity Icon">
+                            <div>
+                                <p class="humidity">50%</p>
+                                <p>Humidity</p>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <img src="img/wind.png" alt="Wind Speed Icon">
+                            <div>
+                                <p class="wind">15 km/h</p>
+                                <p>Wind Speed</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="error" style="display: none;">City not found</div>
+            </div>
+
+            <!-- Weather Alerts Page -->
+            <div class="swiper-slide weather-alerts-page">
+                <div class="header">
+                    <div class="user-info">
+                        <p class="username-display"></p>
+                    </div>
+                    <h2 class="reminder-title">Reminder for Today</h2>
+                </div>
+                <div class="alerts">
+                    <div class="alert">Alert 1</div>
+                    <div class="alert">Alert 2</div>
+                    <div class="alert">Alert 3</div>
+                </div>
+            </div>
+        </div>
+        <!-- Pagination -->
+        <div class="swiper-pagination"></div>
+    </div>
+
+    <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDlYR8O9f0KMhZweVCoF2rhF93oVdbPplE",
+            authDomain: "nursky-47a53.firebaseapp.com",
+            databaseURL: "https://nursky-47a53-default-rtdb.firebaseio.com",
+            projectId: "nursky-47a53",
+            storageBucket: "nursky-47a53.appspot.com",
+            messagingSenderId: "215468714676",
+            appId: "1:215468714676:web:140763cfd989c35c75c5e1"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        const apiKey = "b4025110b5c0a4e29acd6d84798cb4f3";
+        const apiURL = "https://api.openweathermap.org/data/2.5/weather?units=metric&q=";
+
+        const searchBtn = document.querySelector(".search-btn");
+        const cityInput = document.querySelector(".city-input");
+        const weatherIcon = document.querySelector(".weather-icon");
+        const setUserBtn = document.querySelector(".set-username");
+        const usernameInput = document.querySelector(".username-input");
+        const usernameDisplay = document.querySelector(".username-display");
+        const darkmodeToggle = document.querySelector(".darkmode-toggle");
+        const body = document.body;
+
+        async function checkWeather(city) {
+            const response = await fetch(apiURL + city + `&appid=${apiKey}`);
+            if (response.status === 404) {
+                document.querySelector(".error").style.display = "block";
+                document.querySelector(".weather").style.display = "none";
+            } else {
+                const data = await response.json();
+                const temp = Math.round(data.main.temp);
+                document.querySelector(".city").innerHTML = data.name;
+                document.querySelector(".temp").innerHTML = temp + "°c";
+                document.querySelector(".humidity").innerHTML = data.main.humidity + "%";
+                document.querySelector(".wind").innerHTML = data.wind.speed + " km/h";
+
+                if (data.weather[0].main === "Clouds") {
+                    weatherIcon.src = "img/clouds.png";
+                } else if (data.weather[0].main === "Clear") {
+                    weatherIcon.src = "img/clear.png";
+                } else if (data.weather[0].main === "Rain") {
+                    weatherIcon.src = "img/rain.png";
+                } else if (data.weather[0].main === "Drizzle") {
+                    weatherIcon.src = "img/drizzle.png";
+                } else if (data.weather[0].main === "Mist") {
+                    weatherIcon.src = "img/mist.png";
+                }
+
+                document.querySelector(".weather").style.display = "block";
+                document.querySelector(".error").style.display = "none";
+
+                showAlerts(temp);
+            }
+        }
+
+        function showAlerts(temp) {
+            const alerts = document.querySelectorAll(".alert");
+            if (temp <= 29) {
+                alerts[0].textContent = "Stay warm and safe by layering up.";
+                alerts[1].textContent = "Bring an umbrella.";
+                alerts[2].textContent = "Keep yourself cozy with warm clothes like sweaters or coats.";
+            } else {
+                alerts[0].textContent = "Remember to stay safe by bringing an umbrella to prevent sunburn or wearing a cap.";
+                alerts[1].textContent = "Wear sunscreen and drink plenty of water.";
+                alerts[2].textContent = "Wear light, breathable clothing.";
+            }
+        }
+
+        searchBtn.addEventListener("click", () => {
+            checkWeather(cityInput.value);
+        });
+
+        setUserBtn.addEventListener("click", async () => {
+    const username = usernameInput.value.trim(); // Trim to remove leading/trailing spaces
+
+    // Check if username is empty
+    if (username === "") {
+        alert("Please enter a username.");
+        return;
+    }
+
+    // Check if username already exists in Firebase
+    const usernameRef = ref(database, 'users/' + username);
+    const usernameSnapshot = await get(usernameRef);
+
+    if (usernameSnapshot.exists()) {
+        alert("Username already exists. Please choose a different name.");
+        return;
+    }
+
+    // Set the username in UI display
+    usernameDisplay.textContent = username;
+
+    // Save username to Firebase
+    await set(ref(database, 'users/' + username), {
+        username: username
+    });
+
+    // Hide input and button after setting username
+    usernameInput.style.display = "none";
+    setUserBtn.style.display = "none";
+});
+
+
+        darkmodeToggle.addEventListener("click", () => {
+            document.body.classList.toggle("darkmode");
+        });
+
+        const swiper = new Swiper('.swiper-container', {
+            pagination: {
+                el: '.swiper-pagination',
+                clickable: true,
+            },
+        });
+
+        document.querySelector('.get-started-btn').addEventListener('click', () => {
+            swiper.slideNext();
+        });
+    </script>
+</body>
+
+</html>
